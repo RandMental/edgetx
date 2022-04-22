@@ -141,9 +141,6 @@ static inline void check_struct()
     CHKSIZE(RadioData, 901);
     CHKSIZE(ModelData, 11023);
   #endif
-#elif defined(PCBNV14)
-  CHKSIZE(RadioData, 849);
-  CHKSIZE(ModelData, 10839);
 #endif
 
 #undef CHKSIZE

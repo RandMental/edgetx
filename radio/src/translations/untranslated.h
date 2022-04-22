@@ -54,7 +54,7 @@
                   "SC\0" STR_CHAR_SWITCH "SD\0" STR_CHAR_SWITCH                                                                                                                                                                              \
                   "SG\0" STR_CHAR_SWITCH "SH\0" STR_CHAR_SWITCH                                                                                                                                                                              \
                   "SI\0" STR_CHAR_SWITCH "SJ\0"
-#elif defined(RADIO_TX12)
+#elif defined(RADIO_TX12) || defined(RADIO_TX12MK2)
   #define TR_POTS_VSRCRAW              STR_CHAR_POT "S1\0" STR_CHAR_POT "S2\0"
   #define TR_SW_VSRCRAW                STR_CHAR_SWITCH "SA\0" STR_CHAR_SWITCH "SB\0" STR_CHAR_SWITCH "SC\0" STR_CHAR_SWITCH "SD\0" STR_CHAR_SWITCH "SE\0" STR_CHAR_SWITCH "SF\0" STR_CHAR_SWITCH "SI\0" STR_CHAR_SWITCH "SJ\0"
 #elif defined(RADIO_ZORRO)

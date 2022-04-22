@@ -31,7 +31,7 @@
 
 #include "watchdog_driver.h"
 
-#if defined(RADIO_TX12) || defined(RADIO_ZORRO)
+#if defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_ZORRO)
   #define  NAVIGATION_X7_TX12
 #endif
 
@@ -305,7 +305,7 @@ enum EnumSwitches
   SW_SQ,
   SW_SR,
 };
-#if defined(RADIO_TX12)
+#if defined(RADIO_TX12) || defined(RADIO_TX12MK2)
   #define IS_3POS(x)                      ((x) != SW_SA && (x) != SW_SD)
 #elif defined(RADIO_ZORRO)
   #define IS_3POS(x)                      ((x) == SW_SB || (x) == SW_SC)
@@ -431,6 +431,11 @@ enum EnumSwitchesPositions
 #elif defined(RADIO_TX12)
   #define NUM_SWITCHES                  8
   #define STORAGE_NUM_SWITCHES          NUM_SWITCHES
+  #define DEFAULT_SWITCH_CONFIG         (SWITCH_3POS << 10) + (SWITCH_3POS << 8) + (SWITCH_TOGGLE << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_TOGGLE << 0)
+  #define DEFAULT_POTS_CONFIG           (POT_WITH_DETENT << 0) + (POT_WITH_DETENT << 2);
+#elif defined(RADIO_TX12MK2)
+  #define NUM_SWITCHES                  6
+  #define STORAGE_NUM_SWITCHES          8
   #define DEFAULT_SWITCH_CONFIG         (SWITCH_3POS << 10) + (SWITCH_3POS << 8) + (SWITCH_TOGGLE << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_TOGGLE << 0)
   #define DEFAULT_POTS_CONFIG           (POT_WITH_DETENT << 0) + (POT_WITH_DETENT << 2);
 #elif defined(RADIO_ZORRO)
@@ -717,7 +722,7 @@ uint8_t isBacklightEnabled();
 #if !defined(SIMU)
   void usbJoystickUpdate();
 #endif
-#if defined(RADIO_TX12)
+#if defined(RADIO_TX12) || defined(RADIO_TX12MK2)
   #define USB_NAME                     "Radiomaster TX12"
   #define USB_MANUFACTURER             'R', 'M', '_', 'T', 'X', ' ', ' ', ' '  /* 8 bytes */
   #define USB_PRODUCT                  'R', 'M', ' ', 'T', 'X', '1', '2', ' '  /* 8 Bytes */
@@ -913,7 +918,7 @@ void fsLedOn(uint8_t);
 #define IS_LCD_RESET_NEEDED()           true
 #define LCD_CONTRAST_MIN                10
 #define LCD_CONTRAST_MAX                30
-#if defined(RADIO_TX12)
+#if defined(RADIO_TX12) || defined(RADIO_TX12MK2)
   #define LCD_CONTRAST_DEFAULT          20
 #elif defined(RADIO_TPRO) || defined(RADIO_FAMILY_JUMPER_T12) || defined(RADIO_TPRO)
   #define LCD_CONTRAST_DEFAULT          25
