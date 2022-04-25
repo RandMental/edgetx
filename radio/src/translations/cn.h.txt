@@ -992,6 +992,7 @@
 #define TR_FAS_OFFSET                  TR(INDENT "FAS Ofs", INDENT "FAS 偏移量")
 #define TR_AUX_SERIAL_MODE             "串口"
 #define TR_AUX2_SERIAL_MODE            "串口 2"
+#define TR_AUX_SERIAL_PORT_POWER       "Port power"
 #define TR_SCRIPT                      "脚本"
 #define TR_INPUTS                      "输入"
 #define TR_OUTPUTS                     "输出"
@@ -1318,9 +1319,9 @@
 
 #define TR_ADD_ALL_TRIMS_TO_SUBTRIMS  "将所有微调导入中点偏移值"
 #if LCD_W > LCD_H
-  #define TR_OPEN_CHANNEL_MONITORS        "Open Channel Monitor" 
+  #define TR_OPEN_CHANNEL_MONITORS        "打开通道监视器" 
 #else
-  #define TR_OPEN_CHANNEL_MONITORS        "Open Channel Mon." 
+  #define TR_OPEN_CHANNEL_MONITORS        "通道监视" 
 #endif
 #define TR_DUPLICATE                  "复制"
 #define TR_ACTIVATE                   "启用"
