@@ -19,12 +19,20 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "board.h"
+#include "debug.h"
+#include "rtc.h"
 
 #include "hal/adc_driver.h"
 #include "stm32_hal_adc.h"
 
 #include "../common/arm/stm32/timers_driver.h"
+
+#include "dataconstants.h"
+
+#if !defined(BOOT)
+  #include "opentx.h"
+#endif
 
 #if defined(AUX_SERIAL)
 #include "aux_serial_driver.h"
@@ -51,7 +59,7 @@ void watchdogInit(unsigned int duration)
   IWDG->KR = 0xCCCC;      // start
 }
 
-#if defined(SPORT_UPDATE_PWR_GPIO)
+#if defined(SPORT_UPDATE_PWR_GPIO) && !defined(BOOT)
 void sportUpdateInit()
 {
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -82,6 +90,12 @@ void sportUpdatePowerInit()
 }
 #endif
 
+#if !defined(BOOT)
+
+#if defined(RADIO_TPRO)
+#include "storage/storage.h"
+#endif
+
 void boardInit()
 {
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph |
@@ -91,7 +105,6 @@ void boardInit()
                          AUDIO_RCC_AHB1Periph |
                          BACKLIGHT_RCC_AHB1Periph |
                          ADC_RCC_AHB1Periph |
-                         I2C_B1_RCC_AHB1Periph |
                          SD_RCC_AHB1Periph |
                          HAPTIC_RCC_AHB1Periph |
                          INTMODULE_RCC_AHB1Periph |
@@ -102,7 +115,6 @@ void boardInit()
                          TRAINER_RCC_AHB1Periph |
                          TRAINER_MODULE_RCC_AHB1Periph |
                          BT_RCC_AHB1Periph |
-                         I2C_B2_RCC_AHB1Periph |
                          USB_CHARGER_RCC_AHB1Periph,
                          ENABLE);
 
@@ -114,7 +126,6 @@ void boardInit()
                          HAPTIC_RCC_APB1Periph |
                          INTERRUPT_xMS_RCC_APB1Periph |
                          TIMER_2MHz_RCC_APB1Periph |
-                         I2C_B1_RCC_APB1Periph |
                          SD_RCC_APB1Periph |
                          TRAINER_RCC_APB1Periph |
                          TELEMETRY_RCC_APB1Periph |
@@ -122,8 +133,7 @@ void boardInit()
                          INTMODULE_RCC_APB1Periph |
                          TRAINER_MODULE_RCC_APB1Periph |
                          MIXER_SCHEDULER_TIMER_RCC_APB1Periph |
-                         BT_RCC_APB1Periph |
-                         I2C_B2_RCC_APB1Periph,
+                         BT_RCC_APB1Periph,
                          ENABLE);
 
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG |
@@ -224,7 +234,6 @@ void boardInit()
   init2MhzTimer();
   init1msTimer();
   __enable_irq();
-  i2cInit();
   usbInit();
 
 #if defined(DEBUG)
@@ -270,10 +279,6 @@ void boardInit()
 
   initHeadphoneTrainerSwitch();
 
-#if defined(GYRO)
-  gyroInit();
-#endif
-
 #if defined(RTCLOCK) && !defined(COPROCESSOR)
   rtcInit(); // RTC must be initialized before rambackupRestore() is called
 #endif
@@ -284,6 +289,7 @@ void boardInit()
   lcdSetContrast(true);
 #endif
 }
+#endif
 
 void boardOff()
 {
@@ -341,7 +347,7 @@ void boardOff()
   #define BATTERY_DIVIDER 23711 // = 2047*128*BATT_SCALE/(100*(VREF*(160+499)/160))
 #else
   #define BATTERY_DIVIDER 26214
-#endif 
+#endif
 
 #if defined(RADIO_ZORRO) || defined(RADIO_TX12MK2)
   #define VOLTAGE_DROP 45

@@ -28,6 +28,8 @@
 #include "textedit.h"
 #include "numberedit.h"
 
+namespace pxx2 {
+  
 class BindRxChoiceMenu : public Menu
 {
  public:
@@ -46,12 +48,10 @@ class BindWaitDialog : public Dialog
 {
  public:
   BindWaitDialog(Window* parent, uint8_t moduleIdx, uint8_t receiverIdx);
-
   void checkEvents() override;
-#if defined(HARDWARE_KEYS)
-  void onEvent(event_t event) override;
-#endif
 
+  void deleteLater(bool detach = true, bool trash = true) override;
+  
  protected:
   uint8_t moduleIdx;
   uint8_t receiverIdx;
@@ -60,7 +60,7 @@ class BindWaitDialog : public Dialog
 class ReceiverButton : public TextButton
 {
  public:
-  ReceiverButton(FormGroup* parent, rect_t rect, uint8_t moduleIdx,
+  ReceiverButton(Window* parent, rect_t rect, uint8_t moduleIdx,
                  uint8_t receiverIdx);
 
   uint8_t pressBind();
@@ -79,9 +79,6 @@ class RegisterDialog : public Dialog
 
   void start();
   void checkEvents() override;
-#if defined(HARDWARE_KEYS)
-  void onEvent(event_t event) override;
-#endif
 
  protected:
   uint8_t moduleIdx;
@@ -95,11 +92,7 @@ class ModuleOptions : public Dialog
 {
  public:
   ModuleOptions(Window* parent, uint8_t moduleIdx);
-
   void checkEvents() override;
-#if defined(HARDWARE_KEYS)
-  void onEvent(event_t event) override;
-#endif
 
  protected:
 
@@ -127,11 +120,7 @@ class RxOptions : public Dialog
 {
  public:
   RxOptions(Window* parent, uint8_t moduleIdx, uint8_t rxIdx);
-
   void checkEvents() override;
-#if defined(HARDWARE_KEYS)
-  void onEvent(event_t event) override;
-#endif
 
  protected:
 
@@ -155,4 +144,6 @@ class RxOptions : public Dialog
 
   void update();
   void writeSettings();
+};
+
 };

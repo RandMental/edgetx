@@ -45,7 +45,6 @@
   #include "stm32f4xx_tim.h"
   #include "stm32f4xx_adc.h"
   #include "stm32f4xx_spi.h"
-  #include "stm32f4xx_i2c.h"
   #include "stm32f4xx_rtc.h"
   #include "stm32f4xx_pwr.h"
   #include "stm32f4xx_dma.h"
@@ -62,7 +61,6 @@
   #include "stm32f2xx_tim.h"
   #include "stm32f2xx_adc.h"
   #include "stm32f2xx_spi.h"
-  #include "stm32f2xx_i2c.h"
   #include "stm32f2xx_rtc.h"
   #include "stm32f2xx_pwr.h"
   #include "stm32f2xx_dma.h"
@@ -122,15 +120,12 @@ static inline uint32_t ticksNow()
   return DWT->CYCCNT;
 #endif
 }
-
-void delaysInit();
-void delay_01us(uint32_t count);
-void delay_us(uint32_t count);
-void delay_ms(uint32_t count);
-
+  
 #ifdef __cplusplus
 }
 #endif
+
+#include "delays_driver.h"
 
 #define INIT_KEYS_PINS(GPIO) \
   GPIO_InitStructure.GPIO_Pin = KEYS_ ## GPIO ## _PINS; \
@@ -140,5 +135,27 @@ void delay_ms(uint32_t count);
   GPIO_InitStructure.GPIO_Pin = KEYS_ ## GPIO ## _PINS; \
   GPIO_Init(GPIO, &GPIO_InitStructure); \
   GPIO_SetBits(GPIO, KEYS_ ## GPIO ## _PINS)
+
+#if defined(ROTARY_ENCODER_NAVIGATION)
+  typedef int32_t rotenc_t;
+  extern volatile rotenc_t rotencValue;
+  #define IS_ROTARY_ENCODER_NAVIGATION_ENABLE()  true
+  #define ROTARY_ENCODER_NAVIGATION_VALUE        rotencValue
+  #define ROTENC_LOWSPEED              1
+  #define ROTENC_MIDSPEED              5
+  #define ROTENC_HIGHSPEED             50
+  #define ROTENC_DELAY_MIDSPEED        32
+  #define ROTENC_DELAY_HIGHSPEED       16
+#elif defined(RADIO_T8) && defined(__cplusplus)
+  constexpr uint8_t rotencSpeed = 1;
+#endif
+
+#define ROTARY_ENCODER_GRANULARITY (2)
+
+#if defined(PWR_BUTTON_PRESS)
+  #define pwrOffPressed()              pwrPressed()
+#else
+  #define pwrOffPressed()              (!pwrPressed())
+#endif
 
 #endif

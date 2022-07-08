@@ -47,6 +47,9 @@ bool simu_running = false;
 
 uint32_t telemetryErrors = 0;
 
+typedef int32_t rotenc_t;
+volatile rotenc_t rotencValue = 0;
+
 // TODO: remove all STM32 defs
 GPIO_TypeDef gpioa, gpiob, gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, gpioi, gpioj;
 USART_TypeDef Usart0, Usart1, Usart2, Usart3, Usart4;
@@ -137,6 +140,15 @@ void simuSetSwitch(uint8_t swtch, int8_t state)
   switchesStates[swtch] = state;
 }
 
+#if defined(SIMU_BOOTLOADER)
+int bootloaderMain();
+static void* bootloaderThread(void*)
+{
+  bootloaderMain();
+  return nullptr;
+}
+#endif
+
 void simuStart(bool tests, const char * sdPath, const char * settingsPath)
 {
   if (simu_running)
@@ -195,7 +207,21 @@ void simuStart(bool tests, const char * sdPath, const char * settingsPath)
   try {
 #endif
 
+  // Init LCD call backs
+  lcdInit();
+  
+#if !defined(SIMU_BOOTLOADER)
   simuMain();
+#else
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  struct sched_param sp;
+  sp.sched_priority = SCHED_RR;
+  pthread_attr_setschedparam(&attr, &sp);
+
+  pthread_t bl_pid;
+  pthread_create(&bl_pid, &attr, &bootloaderThread, nullptr);
+#endif
 
   simu_running = true;
 
@@ -464,24 +490,6 @@ void pwrInit() {}
 void pwrOn() {}
 void pwrOff() {}
 
-void readKeysAndTrims()
-{
-  uint8_t index = 0;
-  auto keysInput = readKeys();
-  for (auto mask = (1 << 0); mask < (1 << TRM_BASE); mask <<= 1) {
-    keys[index++].input(keysInput & mask);
-  }
-
-  auto trimsInput = readTrims();
-  for (auto mask = (1 << 0); mask < (1 << NUM_TRIMS_KEYS); mask <<= 1) {
-    keys[index++].input(trimsInput & mask);
-  }
-
-  if (keysInput || trimsInput) {
-    resetBacklightTimeout();
-  }
-}
-
 bool keyDown()
 {
   return readKeys();
@@ -582,22 +590,6 @@ FlagStatus USART_GetFlagStatus(USART_TypeDef* USARTx, uint16_t USART_FLAG) { ret
 void TIM_DMAConfig(TIM_TypeDef* TIMx, uint16_t TIM_DMABase, uint16_t TIM_DMABurstLength) { }
 void TIM_DMACmd(TIM_TypeDef* TIMx, uint16_t TIM_DMASource, FunctionalState NewState) { }
 void TIM_CtrlPWMOutputs(TIM_TypeDef* TIMx, FunctionalState NewState) { }
-
-// I2C fake functions
-void I2C_DeInit(I2C_TypeDef*) { }
-void I2C_Init(I2C_TypeDef*, I2C_InitTypeDef*) { }
-void I2C_Cmd(I2C_TypeDef*, FunctionalState) { }
-void I2C_Send7bitAddress(I2C_TypeDef*, unsigned char, unsigned char) { }
-void I2C_SendData(I2C_TypeDef*, unsigned char) { }
-void I2C_GenerateSTART(I2C_TypeDef*, FunctionalState) { }
-void I2C_GenerateSTOP(I2C_TypeDef*, FunctionalState) { }
-void I2C_AcknowledgeConfig(I2C_TypeDef*, FunctionalState) { }
-uint8_t I2C_ReceiveData(I2C_TypeDef*) { return 0; }
-ErrorStatus I2C_CheckEvent(I2C_TypeDef*, unsigned int) { return (ErrorStatus) ERROR; }
-
-// I2S fake functions
-void I2S_Init(SPI_TypeDef* SPIx, I2S_InitTypeDef* I2S_InitStruct) { }
-void I2S_Cmd(SPI_TypeDef* SPIx, FunctionalState NewState) { }
 
 // SPI fake functions
 void SPI_I2S_DeInit(SPI_TypeDef* SPIx) { }
@@ -751,14 +743,26 @@ const etx_serial_port_t UsbSerialPort = { "USB-VCP", nullptr, nullptr };
 #endif
 
 #if defined(AUX_SERIAL)
-const etx_serial_port_t auxSerialPort = { "AUX1", nullptr, nullptr };
+#if defined(AUX_SERIAL_PWR_GPIO)
+  static void _fake_pwr_aux(uint8_t) {}
+  #define AUX_SERIAL_PWR _fake_pwr_aux
+#else
+  #define AUX_SERIAL_PWR nullptr
+#endif
+const etx_serial_port_t auxSerialPort = { "AUX1", nullptr, AUX_SERIAL_PWR };
 #define AUX_SERIAL_PORT &auxSerialPort
 #else
 #define AUX_SERIAL_PORT nullptr
 #endif
 
 #if defined(AUX2_SERIAL)
-const etx_serial_port_t aux2SerialPort = { "AUX2", nullptr, nullptr };
+#if defined(AUX_SERIAL_PWR_GPIO)
+  static void _fake_pwr_aux2(uint8_t) {}
+  #define AUX2_SERIAL_PWR _fake_pwr_aux2
+#else
+  #define AUX2_SERIAL_PWR nullptr
+#endif
+const etx_serial_port_t aux2SerialPort = { "AUX2", nullptr, AUX2_SERIAL_PWR };
 #define AUX2_SERIAL_PORT &aux2SerialPort
 #else
 #define AUX2_SERIAL_PORT nullptr

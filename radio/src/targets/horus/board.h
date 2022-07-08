@@ -24,6 +24,10 @@
 
 #include "definitions.h"
 #include "opentx_constants.h"
+
+// Defines used in board_common.h
+#define ROTARY_ENCODER_NAVIGATION
+
 #include "board_common.h"
 #include "hal.h"
 #include "hal/serial_port.h"
@@ -34,9 +38,6 @@
 #include "tp_gt911.h"
 #endif
 
-#if defined(IMU_LSM6DS33)
-#include "imu_lsm6ds33.h"
-#endif
 
 PACK(typedef struct {
   uint8_t pcbrev:2;
@@ -61,11 +62,6 @@ extern HardwareOptions hardwareOptions;
 #define LUA_MEM_EXTRA_MAX              (2 MB)    // max allowed memory usage for Lua bitmaps (in bytes)
 #define LUA_MEM_MAX                    (6 MB)    // max allowed memory usage for complete Lua  (in bytes), 0 means unlimited
 
-// HSI is at 168Mhz (over-drive is not enabled!)
-#define PERI1_FREQUENCY                42000000
-#define PERI2_FREQUENCY                84000000
-#define TIMER_MULT_APB1                2
-#define TIMER_MULT_APB2                2
 
 extern uint16_t sessionTimer;
 
@@ -310,7 +306,6 @@ uint32_t readTrims();
 #define TRIMS_PRESSED()                         (readTrims())
 
 // Rotary encoder driver
-#define ROTARY_ENCODER_NAVIGATION
 void rotaryEncoderInit();
 void rotaryEncoderCheck();
 
@@ -526,28 +521,19 @@ void ledBlue();
 // LCD driver
 #define LCD_W                          480
 #define LCD_H                          272
+#define LCD_PHYS_H                     LCD_H
+#define LCD_PHYS_W                     LCD_W
 #define LCD_DEPTH                      16
 void lcdInit();
-void lcdRefresh();
 void lcdCopy(void * dest, void * src);
 void DMAFillRect(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 void DMACopyBitmap(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint16_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h);
 void DMACopyAlphaBitmap(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint16_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h);
 void DMABitmapConvert(uint16_t * dest, const uint8_t * src, uint16_t w, uint16_t h, uint32_t format);
-void lcdStoreBackupBuffer();
-int lcdRestoreBackupBuffer();
-void lcdSetContrast();
 #define lcdOff()              backlightEnable(0) /* just disable the backlight */
-#define lcdSetRefVolt(...)
 #define lcdRefreshWait(...)
 
 // Backlight driver
-void backlightInit();
-#if defined(SIMU) || !defined(__cplusplus)
-#define backlightEnable(...)
-#else
-void backlightEnable(uint8_t dutyCycle = 0);
-#endif
 #define BACKLIGHT_LEVEL_MAX     100
 #define BACKLIGHT_FORCED_ON     BACKLIGHT_LEVEL_MAX + 1
 #if defined(PCBX12S)
@@ -557,16 +543,29 @@ void backlightEnable(uint8_t dutyCycle = 0);
 #else
 #define BACKLIGHT_LEVEL_MIN   46
 #endif
-#if defined(SIMU)
-#define BACKLIGHT_ENABLE()
-#define BACKLIGHT_DISABLE()
-#define isBacklightEnabled(...) true
-#else
+
 extern bool boardBacklightOn;
-#define BACKLIGHT_ENABLE()    {boardBacklightOn = true; backlightEnable(globalData.unexpectedShutdown ? BACKLIGHT_LEVEL_MAX : BACKLIGHT_LEVEL_MAX - currentBacklightBright);}
-#define BACKLIGHT_DISABLE()   {boardBacklightOn = false; backlightEnable(globalData.unexpectedShutdown ? BACKLIGHT_LEVEL_MAX : ((g_eeGeneral.blOffBright == BACKLIGHT_LEVEL_MIN) && (g_eeGeneral.backlightMode != e_backlight_mode_off)) ? 0 : g_eeGeneral.blOffBright);}
+void backlightInit();
+void backlightEnable(uint8_t dutyCycle);
+void backlightFullOn();
 bool isBacklightEnabled();
-#endif
+
+#define BACKLIGHT_ENABLE()                                               \
+  {                                                                      \
+    boardBacklightOn = true;                                             \
+    backlightEnable(globalData.unexpectedShutdown                        \
+                        ? BACKLIGHT_LEVEL_MAX                            \
+                        : BACKLIGHT_LEVEL_MAX - currentBacklightBright); \
+  }
+#define BACKLIGHT_DISABLE()                                                 \
+  {                                                                         \
+    boardBacklightOn = false;                                               \
+    backlightEnable(globalData.unexpectedShutdown ? BACKLIGHT_LEVEL_MAX     \
+                    : ((g_eeGeneral.blOffBright == BACKLIGHT_LEVEL_MIN) &&  \
+                       (g_eeGeneral.backlightMode != e_backlight_mode_off)) \
+                        ? 0                                                 \
+                        : g_eeGeneral.blOffBright);                         \
+  }
 
 #if !defined(SIMU)
 void usbJoystickUpdate();
@@ -674,5 +673,11 @@ void bluetoothInit(uint32_t baudrate, bool enable);
 void bluetoothWriteWakeup();
 uint8_t bluetoothIsWriting();
 void bluetoothDisable();
+
+#if defined (RADIO_TX16S)
+  #define BATTERY_DIVIDER 1495
+#else
+  #define BATTERY_DIVIDER 1629
+#endif 
 
 #endif // _BOARD_H_

@@ -22,6 +22,7 @@
 #include "opentx.h"
 #include "lcd.h"
 #include "theme_manager.h"
+#include "libopenui.h"
 
 coord_t drawStringWithIndex(BitmapBuffer * dc, coord_t x, coord_t y, const char * str, int idx, LcdFlags flags, const char * prefix, const char * suffix)
 {
@@ -50,6 +51,11 @@ void drawVerticalScrollbar(BitmapBuffer * dc, coord_t x, coord_t y, coord_t h, u
     dc->drawSolidFilledRect(x-1, y + yofs, 3, yhgt, COLOR_THEME_FOCUS);
   }
 }
+
+const uint8_t _LBM_TRIM_SHADOW[] = {
+#include "mask_trim_shadow.lbm"
+};
+STATIC_LZ4_BITMAP(LBM_TRIM_SHADOW);
 
 void drawTrimSquare(BitmapBuffer * dc, coord_t x, coord_t y, LcdFlags color)
 {
@@ -91,7 +97,7 @@ void drawSleepBitmap()
     bgColor = COLOR_THEME_SECONDARY1;
   }
 
-  lcd->reset();
+  lcdInitDirectDrawing();
   lcd->clear(bgColor);
 
   const BitmapBuffer* bitmap = OpenTxTheme::instance()->shutdown;
@@ -103,7 +109,53 @@ void drawSleepBitmap()
   lcdRefresh();
 }
 
-#define SHUTDOWN_CIRCLE_DIAMETER       150
+#define SHUTDOWN_CIRCLE_DIAMETER 150
+
+const uint8_t _LBM_SHUTDOWN_CIRCLE[] = {
+#include "mask_shutdown_circle.lbm"
+};
+STATIC_LZ4_BITMAP(LBM_SHUTDOWN_CIRCLE);
+
+class ShutdownAnimation: public FormGroup
+{
+  public:
+  ShutdownAnimation(uint32_t duration, uint32_t totalDuration):
+      FormGroup(MainWindow::instance(), {0, 0, LCD_W, LCD_H}, OPAQUE | FORM_NO_BORDER),
+      duration(duration),
+      totalDuration(totalDuration)
+    {
+      Layer::push(this);
+      bringToTop();
+      // setFocus(SET_FOCUS_DEFAULT);
+    }
+
+#if defined(DEBUG_WINDOWS)
+    std::string getName() const override
+    {
+      return "ShutdownAnimation";
+    }
+#endif
+    void paint(BitmapBuffer * dc) override
+    {
+    }
+
+    void deleteLater(bool detach = true, bool trash = true) override
+    {
+      Layer::pop(this);
+      Window::deleteLater(detach, trash);
+    }
+
+    void update(uint32_t newDuration, uint32_t newTotalDuration)
+    {
+      duration = newDuration;
+      totalDuration = newTotalDuration;
+    }
+
+  protected:
+    uint32_t duration;
+    uint32_t totalDuration;
+    std::string message;
+};
 
 void drawShutdownAnimation(uint32_t duration, uint32_t totalDuration,
                            const char* message)
@@ -123,7 +175,7 @@ void drawShutdownAnimation(uint32_t duration, uint32_t totalDuration,
 
   static const BitmapBuffer* shutdown = OpenTxTheme::instance()->shutdown;
 
-  lcd->reset();
+  lcdInitDirectDrawing();
   lcd->clear(bgColor);
 
   if (shutdown) {
@@ -158,40 +210,45 @@ void drawShutdownAnimation(uint32_t duration, uint32_t totalDuration,
       }
     }
   }
-
-  WDG_RESET();
   lcdRefresh();
+
+  // invalidate screen to enable quick return
+  // to normal display routine
+  lv_obj_invalidate(lv_scr_act());
 }
 
 void drawFatalErrorScreen(const char * message)
 {
-  lcd->reset();
+  backlightEnable(100);
+  lcdInitDirectDrawing();
   lcd->clear(COLOR2FLAGS(BLACK));
   lcd->drawText(LCD_W/2, LCD_H/2-20, message, FONT(XL)|CENTERED|COLOR2FLAGS(WHITE));
-
-  WDG_RESET();
   lcdRefresh();
+
+  // invalidate screen to enable quick return
+  // to normal display routine
+  lv_obj_invalidate(lv_scr_act());
 }
 
 void runFatalErrorScreen(const char * message)
 {
-  while (true) {
-    backlightEnable(100);
-    drawFatalErrorScreen(message);
+  lcdInitDisplayDriver();
 
-    uint8_t refresh = false;
+  while (true) {
+    drawFatalErrorScreen(message);
+    WDG_RESET();
+
+    // loop as long as PWR button is pressed
     while (true) {
       uint32_t pwr_check = pwrCheck();
       if (pwr_check == e_power_off) {
         boardOff();
         return;  // only happens in SIMU, required for proper shutdown
       }
-      else if (pwr_check == e_power_press) {
-        refresh = true;
-      }
-      else if (pwr_check == e_power_on && refresh) {
+      else if (pwr_check == e_power_on) {
         break;
       }
+      WDG_RESET();
     }
   }
 }
@@ -223,8 +280,7 @@ void drawCurveRef(BitmapBuffer * dc, coord_t x, coord_t y, const CurveRef & curv
 
 void drawStickName(BitmapBuffer * dc, coord_t x, coord_t y, uint8_t idx, LcdFlags att)
 {
-  uint8_t length = STR_VSRCRAW[0];
-  dc->drawSizedText(x, y, STR_VSRCRAW+2+length*(idx+1), length-1, att);
+  dc->drawText(x, y, STR_VSRCRAW[idx]+1, att);
 }
 
 void drawModelName(BitmapBuffer * dc, coord_t x, coord_t y, char * name, uint8_t id, LcdFlags att)

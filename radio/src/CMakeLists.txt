@@ -2,8 +2,8 @@ include(CMakeForceCompiler)
 include(Bitmaps)
 
 set(PCB_TYPES X9LITE X9LITES X7 XLITE XLITES X9D X9D+ X9E X10 X12S NV14)
-set(RADIO_LANGUAGES CZ DE EN ES FR IT PT SK SE PL HU NL CN TW)
-set(TTS_LANGUAGES CZ DE EN ES FR IT PT SK SE PL HU NL RU CN)
+set(RADIO_LANGUAGES CZ DA DE EN ES FI FR IT PT SK SE PL HU NL CN TW)
+set(TTS_LANGUAGES CZ DA DE EN ES FR IT PT SK SE PL HU NL RU CN)
 
 set(PCB "X9D+" CACHE STRING "Radio type, one of: ${PCB_TYPES}")
 set_property(CACHE PCB PROPERTY STRINGS ${PCB_TYPES})
@@ -87,8 +87,6 @@ set(GVARS_VARIANT   1)
 set(FRSKY_VARIANT   2)
 set(3POS_VARIANT    4)
 
-set(RADIO_DEPENDENCIES radio_translations)
-
 set(FATFS_SRC
   ${FATFS_DIR}/ff.c
   ${FATFS_DIR}/ffunicode.c
@@ -105,7 +103,6 @@ else()
   message(FATAL_ERROR "Unknown PCB '${PCB}'")
 endif()
 
-add_subdirectory(translations)
 add_subdirectory(bitmaps)
 add_subdirectory(fonts)
 add_subdirectory(lua)
@@ -153,6 +150,8 @@ include(gui/CMakeLists.txt)
 
 set(SRC ${SRC} storage/storage_common.cpp)
 
+include(storage/conversions/CMakeLists.txt)
+
 if(${STORAGE} STREQUAL SDCARD)
   set(SRC ${SRC} storage/sdcard_common.cpp)
   if(${STORAGE_FORMAT} STREQUAL RAW)
@@ -163,8 +162,10 @@ if(${STORAGE} STREQUAL SDCARD)
     add_definitions(-DSDCARD_YAML)
     include(storage/yaml/CMakeLists.txt)
     if (${STORAGE_CONVERT} STREQUAL EEPROM_RLC)
-      set(SRC ${SRC} storage/eeprom_rlc.cpp)
-      add_definitions(-DEEPROM_RLC)
+      if (STORAGE_CONVERSIONS LESS 221)
+        set(SRC ${SRC} storage/eeprom_rlc.cpp)
+        add_definitions(-DEEPROM_RLC)
+      endif()
     else(${STORAGE_CONVERT} STREQUAL RAW)
       set(SRC ${SRC} storage/sdcard_raw.cpp)
     endif()
@@ -179,17 +180,12 @@ elseif(${STORAGE} STREQUAL EEPROM)
   if(${STORAGE_FORMAT} STREQUAL RLC)
     set(SRC ${SRC} storage/eeprom_rlc.cpp)
     add_definitions(-DEEPROM_RLC)
-  elseif(${STORAGE_FORMAT} STREQUAL RAW)
-    set(SRC ${SRC} storage/eeprom_raw.cpp)
-    add_definitions(-DEEPROM_RAW)
   else()
     set(SRC ${SRC} storage/eeprom_none.cpp)
     add_definitions(-DEEPROM_NONE)
   endif()
 endif()
 
-
-include(storage/conversions/CMakeLists.txt)
 
 if(RTC_BACKUP_RAM)
   add_definitions(-DRTC_BACKUP_RAM)
@@ -221,6 +217,7 @@ if(LUA)
     lua/api_general.cpp 
     lua/api_model.cpp
     lua/api_filesystem.cpp
+    lua/lua_event.cpp
   )
 
   if(GUI_DIR STREQUAL colorlcd)

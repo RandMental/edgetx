@@ -102,7 +102,10 @@ static const char * const options[] = {
   "bindkey",
 #endif
 #if defined(CLI)
-  "cli",
+    "cli",
+#endif
+#if defined(ENABLE_SERIAL_PASSTHROUGH)
+    "passthrough",
 #endif
   nullptr //sentinel
 };

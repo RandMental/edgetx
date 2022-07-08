@@ -21,6 +21,7 @@
 
 #pragma once
 
+#if !defined(BOOT)
 #include "datastructs_private.h"
 
 #if !defined(BACKUP)
@@ -135,10 +136,10 @@ static inline void check_struct()
   CHKSIZE(ModelData, 6605);
 #elif defined(PCBHORUS)
   #if defined(PCBX10)
-    CHKSIZE(RadioData, 921);
+    CHKSIZE(RadioData, 923);
     CHKSIZE(ModelData, 11025);
   #else
-    CHKSIZE(RadioData, 903);
+    CHKSIZE(RadioData, 905);
     CHKSIZE(ModelData, 11023);
   #endif
 #elif defined(PCBNV14)
@@ -149,3 +150,4 @@ static inline void check_struct()
 #undef CHKSIZE
 }
 #endif /* BACKUP */
+#endif /* !BOOT */

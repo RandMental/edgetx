@@ -56,6 +56,9 @@ set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
 set(CLI ON CACHE BOOL "Enable CLI")
 set(AUX_SERIAL ON)
 
+# IMU support
+set(IMU ON)
+
 if (PCB STREQUAL X10)
   set(PCBREV "STD" CACHE STRING "PCB Revision")
   add_definitions(-DSOFTWARE_VOLUME)
@@ -89,7 +92,16 @@ if (PCB STREQUAL X10)
     add_definitions(-DRADIO_FAMILY_T16)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     option(BLUETOOTH "Support for bluetooth module" OFF)
+    option(INTERNAL_GPS "Support for internal NMEA GPS" ON)    
     add_definitions(-DMANUFACTURER_JUMPER)
+    if (NOT BLUETOOTH)
+      set(AUX2_SERIAL ON)
+    endif()
+    set(INTERNAL_GPS_BAUDRATE "9600" CACHE STRING "Baud rate for internal GPS")    
+    set(FIRMWARE_TARGET_SRC
+    ${FIRMWARE_TARGET_SRC}
+       ../../thirdparty/STM32F4xx_DSP_StdPeriph_Lib_V1.8.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash.c
+      )
   elseif (PCBREV STREQUAL TX16S)
     set(FLAVOUR tx16s)
     set(LUA_EXPORT lua_export_t16)
@@ -97,7 +109,7 @@ if (PCB STREQUAL X10)
     add_definitions(-DRADIO_FAMILY_T16)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     option(BLUETOOTH "Support for bluetooth module" OFF)
-    option(INTERNAL_GPS "Support for internal ublox GPS" ON)
+    option(INTERNAL_GPS "Support for internal NMEA GPS" ON)
     set(HARDWARE_TOUCH YES)
     set(SWSERIALPOWER YES)
     set(USB_CHARGER YES)
@@ -118,8 +130,17 @@ if (PCB STREQUAL X10)
     add_definitions(-DRADIO_FAMILY_T16)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     option(BLUETOOTH "Support for bluetooth module" OFF)
+    option(INTERNAL_GPS "Support for internal NMEA GPS" ON)    
     set(HARDWARE_TOUCH YES)
     add_definitions(-DMANUFACTURER_JUMPER)
+    if (NOT BLUETOOTH)
+      set(AUX2_SERIAL ON)
+    endif()
+    set(INTERNAL_GPS_BAUDRATE "9600" CACHE STRING "Baud rate for internal GPS")    
+    set(FIRMWARE_TARGET_SRC
+    ${FIRMWARE_TARGET_SRC}
+       ../../thirdparty/STM32F4xx_DSP_StdPeriph_Lib_V1.8.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash.c
+      )
   else()
     set(FLAVOUR x10)
     set(DEFAULT_INTERNAL_MODULE XJT_PXX1 CACHE STRING "Default internal module")
@@ -161,7 +182,6 @@ add_definitions(-DPCBREV_${PCBREV})
 set(RADIO_DEPENDENCIES
   ${RADIO_DEPENDENCIES}
   ${BITMAPS_TARGET}
-  truetype_fonts
   )
 
 set(FIRMWARE_DEPENDENCIES datacopy)
@@ -197,7 +217,6 @@ endif()
 if(IMU_LSM6DS33)
   add_definitions(-DIMU_LSM6DS33)
   set(AUX_SERIAL OFF)
-  set(IMU_LSM6DS33_DRIVER imu_lsm6ds33.cpp)
 endif()
 
 if(NOT INTERNAL_MODULE_PXX1)
@@ -229,9 +248,8 @@ endif()
 set(GVAR_SCREEN model_gvars.cpp)
 
 if(HARDWARE_TOUCH)
-  set(TOUCH_DRIVER tp_gt911.cpp i2c_driver.cpp)
+  set(TOUCH_DRIVER tp_gt911.cpp)
   add_definitions(-DHARDWARE_TOUCH)
-  set(SOFTWARE_KEYBOARD ON)
 endif()
 
 if(SWSERIALPOWER)
@@ -258,7 +276,6 @@ set(FIRMWARE_TARGET_SRC
   ${FIRMWARE_TARGET_SRC}
   ${LCD_DRIVER}
   ${FLYSKY_HALL_STICKS_DRIVER}
-  ${IMU_LSM6DS33_DRIVER}
   ${TOUCH_DRIVER}
   board.cpp
   backlight_driver.cpp

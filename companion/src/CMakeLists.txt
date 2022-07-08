@@ -107,7 +107,7 @@ configure_file(${COMPANION_SRC_DIRECTORY}/simulator.desktop.in ${CMAKE_CURRENT_B
 ### Generate .qm files and assemble resource (qrc) file.
 
 # available Companion translations (src/translations/*.ts)
-set(LANGUAGES cs de en es fi fr it pl ru sv zh_CN ja)
+set(LANGUAGES cs da de en es fi fr it pl ru sv zh_CN ja)
 foreach(language ${LANGUAGES})
   list(APPEND companion_TS translations/companion_${language}.ts)
 endforeach(language)
@@ -197,6 +197,7 @@ add_subdirectory(simulation)
 add_subdirectory(storage)
 add_subdirectory(thirdparty/qcustomplot)
 add_subdirectory(thirdparty/maxlibqt/src/widgets)
+add_subdirectory(thirdparty/miniz)
 
 set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Enable testing" FORCE)
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Enable parse tools" FORCE)
@@ -303,7 +304,7 @@ qt5_wrap_ui(companion_SRCS ${companion_UIS})
 qt5_wrap_cpp(companion_SRCS ${companion_MOC_HDRS})
 
 add_executable(${COMPANION_NAME} MACOSX_BUNDLE ${WIN_EXECUTABLE_TYPE} ${companion_SRCS} ${icon_RC})
-target_link_libraries(${COMPANION_NAME} PRIVATE generaledit modeledit qcustomplot shared ${CPN_COMMON_LIB})
+target_link_libraries(${COMPANION_NAME} PRIVATE generaledit modeledit qcustomplot miniz shared ${CPN_COMMON_LIB})
 
 PrintTargetReport("${COMPANION_NAME}")
 

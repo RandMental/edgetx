@@ -24,6 +24,7 @@
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
+  #include "gui/colorlcd/LvglWrapper.h"
 #endif
 
 #if defined(CLI)
@@ -157,7 +158,6 @@ void handleUsbConnection()
 
       if (getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
         opentxClose(false);
-        usbPluggedIn();
       }
 #if defined(USB_SERIAL)
       else if (getSelectedUsbMode() == USB_SERIAL_MODE) {
@@ -364,16 +364,7 @@ void guiMain(event_t evt)
   }
 
   DEBUG_TIMER_START(debugTimerLua);
-
-  // Run Lua scripts first that don't use LCD
-  luaTask(  0, false);
-
-  // This is run from StandaloneLuaWindow::checkEvents()
-  // luaTask(evt, RUN_STNDAL_SCRIPT, true);
-
-  // TODO: Telemetry scripts are run from Window::checkEvents()
-  // luaTask(  0, RUN_TELEM_BG_SCRIPT, false/* NO LCD */);
-  // luaTask(evt, RUN_TELEM_FG_SCRIPT, true/* LCD YES */);
+  luaTask(0, false);
   DEBUG_TIMER_STOP(debugTimerLua);
 
   t0 = get_tmr10ms() - t0;
@@ -381,10 +372,8 @@ void guiMain(event_t evt)
     maxLuaDuration = t0;
   }
 #endif
-#if defined(HARDWARE_TOUCH)
-  MainWindow* mainWin = MainWindow::instance();
-  mainWin->setTouchEnabled(!isFunctionActive(FUNCTION_DISABLE_TOUCH) && isBacklightEnabled());
-#endif
+
+  LvglWrapper::instance()->run();
   MainWindow::instance()->run();
 
   bool screenshotRequested = (mainRequestFlags & (1u << REQUEST_SCREENSHOT));
@@ -484,16 +473,24 @@ void guiMain(event_t evt)
 }
 #endif
 
+#if !defined(SIMU)
+  void initLoggingTimer();
+#endif
+
 void perMain()
 {
   DEBUG_TIMER_START(debugTimerPerMain1);
-
 
   checkSpeakerVolume();
 
   if (!usbPlugged() || (getSelectedUsbMode() == USB_UNSELECTED_MODE)) {
     checkEeprom();
-    logsWrite();
+    
+    #if !defined(SIMU)     // use FreeRTOS software timer if radio firmware
+      initLoggingTimer();  // initialize software timer for logging
+    #else
+      logsWrite();         // call logsWrite the old way for simu
+    #endif
   }
 
   handleUsbConnection();
@@ -546,7 +543,7 @@ void perMain()
   if (usbPlugged() && getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
 #if defined(LIBOPENUI)
     // draw some image showing USB
-    lcd->reset();
+    lcdInitDirectDrawing();
     OpenTxTheme::instance()->drawUsbPluggedScreen(lcd);
     lcdRefresh();
 #else

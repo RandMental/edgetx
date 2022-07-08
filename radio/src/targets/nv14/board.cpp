@@ -19,12 +19,20 @@
  * GNU General Public License for more details.
  */
  
-#include "opentx.h"
+#include "board.h"
+#include "globals.h"
+#include "sdcard.h"
 #include "touch.h"
+#include "debug.h"
 
 #include "hal/adc_driver.h"
 #include "stm32_hal_adc.h"
 #include "timers_driver.h"
+
+#include "bitmapbuffer.h"
+#include "colors.h"
+
+#include <string.h>
 
 #if defined(__cplusplus) && !defined(SIMU)
 extern "C" {
@@ -178,8 +186,6 @@ void boardInit()
   memset(&g_FATFS_Obj, 0, sizeof(g_FATFS_Obj));
   monitorInit();
   adcInit(&stm32_hal_adc_driver);
-  backlightInit();
-  lcdInit();
   hapticInit();
 
 
